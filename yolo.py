@@ -26,6 +26,7 @@
 
 ################################################################################
 
+
 import cv2
 import argparse
 import sys
@@ -155,7 +156,7 @@ def yolo_on_one_frame(frame, classes="coco.names", config_file="yolov3.cfg", wei
     net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
     ##
     ### change to cv2.dnn.DNN_TARGET_CPU (slower) if this causes issues (should fail gracefully if OpenCL not available)
-    net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
+    net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
     tensor = cv2.dnn.blobFromImage(frame, 1 / 255, (inpWidth, inpHeight), [0, 0, 0], 1, crop=False)
     net.setInput(tensor)
