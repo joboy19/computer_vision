@@ -39,11 +39,30 @@ def drawBoxes(frame, classes, boxes, distance_estimates):
 
 
 
-master_path_to_dataset = "D://Users//Joe//Documents//00uni//coursework and notes//year3//ssa//vision//TTBB-durham-02-10-17-sub10"
+master_path_to_dataset = "C://Users//joebo//Documents//00uni//year3//vision//TTBB-durham-02-10-17-sub10"
 
 
 #get left and right image paths
 test_image = "1506943061.478682_L.png"
+
+def imagePrepCLAHELAB(imgL): 
+    clahe = cv2.createCLAHE(clipLimit=4.0,tileGridSize=(4,4)) 
+
+    imgL_LAB = cv2.cvtColor(imgL, cv2.COLOR_BGR2LAB)
+    imgL_LAB_Planes = cv2.split(imgL_LAB)
+    imgL_LAB_Planes[0] = clahe.apply(imgL_LAB_Planes[0])
+    imgL_LAB = cv2.merge(imgL_LAB_Planes)
+    imgL_CLAHE = cv2.cvtColor(imgL_LAB, cv2.COLOR_LAB2BGR)
+
+    return imgL_CLAHE
+
+def imagePrepCLAHEGRAY(imgL): 
+    clahe = cv2.createCLAHE(clipLimit=4.0,tileGridSize=(4,4)) 
+    imgL_ = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
+    imgL_ = clahe.apply(imgL_)
+
+    return imgL_
+
 
 def yolo_and_depth(image_path):
     full_path_directory_left =  os.path.join(master_path_to_dataset, "left-images")
@@ -55,31 +74,16 @@ def yolo_and_depth(image_path):
     #read the images in and crop the car from the bottom
     imgL = cropBottom(cv2.imread(full_path_filename_left))
     imgR = cropBottom(cv2.imread(full_path_filename_right))
+ 
 
-
-    #run a CLAHE on the input colour image 
-    clahe = cv2.createCLAHE(clipLimit=4.0,tileGridSize=(16,16))
-
-
-    imgL_LAB = cv2.cvtColor(imgL, cv2.COLOR_BGR2LAB)
-    imgL_LAB_Planes = cv2.split(imgL_LAB)
-    imgL_LAB_Planes[0] = clahe.apply(imgL_LAB_Planes[0])
-    imgL_LAB = cv2.merge(imgL_LAB_Planes)
-    imgL_CLAHE = cv2.cvtColor(imgL_LAB, cv2.COLOR_LAB2BGR)
-
-    imgR_LAB = cv2.cvtColor(imgR, cv2.COLOR_BGR2LAB)
-    imgR_LAB_Planes = cv2.split(imgR_LAB)
-    imgR_LAB_Planes[0] = clahe.apply(imgR_LAB_Planes[0])
-    imgR_LAB = cv2.merge(imgR_LAB_Planes)
-    imgR_CLAHE = cv2.cvtColor(imgR_LAB, cv2.COLOR_LAB2BGR)
-
-
+    imgL_CLAHE = imagePrepCLAHEGRAY(imgL)
+    imgR_CLAHE = imagePrepCLAHEGRAY(imgR)
 
     #get boxes of objects and their classes (filtered to relevant objects)
-    classes, boxes = yolo_on_one_frame(imgL_CLAHE)
+    classes, boxes = yolo_on_one_frame(imgL)
 
     #get the depth-map by calculating disaparity and converting to depth
-    depth_map, depth_map2 =  stereo_to_3d(imgL_CLAHE, imgR_CLAHE, max_disparity=128)
+    depth_map, depth_map2 = stereo_to_3d(imgL_CLAHE, imgR_CLAHE, max_disparity=128)
 
     distance_estimates = []
 
@@ -99,6 +103,8 @@ def yolo_and_depth(image_path):
 
 
     drawBoxes(imgL, classes, boxes, distance_estimates)
+
+
 
     cv2.imshow("Yolo", imgL)
     cv2.imshow("Depth", depth_map2)

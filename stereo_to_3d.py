@@ -106,9 +106,14 @@ def stereo_to_3d(imgL, imgR, max_disparity=128):
 
     # remember to convert to grayscale (as the disparity matching works on grayscale)
     # N.B. need to do for both as both are 3-channel images
-
-    grayL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY);
-    grayR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY);
+    try:
+        grayL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY);
+    except:
+        grayL = imgL
+    try:
+        grayR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY);
+    except:
+        gray = imgR
 
     # compute disparity image from undistorted and rectified stereo images
     # that we have loaded
