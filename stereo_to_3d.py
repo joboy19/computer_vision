@@ -40,8 +40,9 @@ image_centre_w = 474.5;
 ## project_disparity_to_3d : project a given disparity image
 ## (uncropped, unscaled) to a set of 3D points with optional colour
 
-def project_disparity_to_3d(disparity, max_disparity, rgb=[]):
+def project_disparity_to_3d(disparity, max_disparity, imgL):
     values_out = np.zeros((len(imgL), len(imgL[0]), 1))
+    values_out2 = np.zeros((len(imgL), len(imgL[0]), 1))
 
     points = [];
 
@@ -72,16 +73,10 @@ def project_disparity_to_3d(disparity, max_disparity, rgb=[]):
                 X = ((x - image_centre_w) * Z) / f;
                 Y = ((y - image_centre_h) * Z) / f;
 
-                # add to points
+                values_out[y][x] = Z
+                values_out2[y][x] = Z / 256
 
-                if(rgb.size > 0):
-                    points.append([X,Y,Z,rgb[y,x,2], rgb[y,x,1],rgb[y,x,0]]);
-                else:
-                    points.append([X,Y,Z]);
-            
-            values_out[x][y] = X
-
-    return points, values_out;
+    return values_out, values_out2;
 
 #####################################################################
 
@@ -107,10 +102,7 @@ def project_3D_points_to_2D_image_points(points):
 
 #####################################################################
 
-def stereo_to_3d(imgL, imgR, max_disp=128):
-
-
-    print("-- files loaded successfully");
+def stereo_to_3d(imgL, imgR, max_disparity=128):
 
     # remember to convert to grayscale (as the disparity matching works on grayscale)
     # N.B. need to do for both as both are 3-channel images
@@ -121,6 +113,7 @@ def stereo_to_3d(imgL, imgR, max_disp=128):
     # compute disparity image from undistorted and rectified stereo images
     # that we have loaded
     # (which for reasons best known to the OpenCV developers is returned scaled by 16)
+    stereoProcessor = cv2.StereoSGBM_create(0, max_disparity, 21);
 
     disparity = stereoProcessor.compute(grayL,grayR);
 
@@ -141,12 +134,12 @@ def stereo_to_3d(imgL, imgR, max_disp=128):
     # display image (scaling it to the full 0->255 range based on the number
     # of disparities in use for the stereo part)
 
-    cv2.imshow("disparity", (disparity_scaled * (255. / max_disparity)).astype(np.uint8));
+    ##cv2.imshow("disparity", (disparity_scaled * (255. / max_disparity)).astype(np.uint8));
 
     # project to a 3D colour point cloud (with or without colour)
 
     # points = project_disparity_to_3d(disparity_scaled, max_disparity);
-    points, values_out = project_disparity_to_3d(disparity_scaled, max_disparity, imgL);
+    values_out = project_disparity_to_3d(disparity_scaled, max_disparity, imgL);
 
     return values_out
     # close all windows

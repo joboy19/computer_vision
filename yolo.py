@@ -164,22 +164,10 @@ def yolo_on_one_frame(frame, classes="coco.names", config_file="yolov3.cfg", wei
     out_class = [] 
     out_boxes = []
     for x in enumerate(classIDs):
-        if classes[classIDs[x[1]]] in ["person", "car", "motorbike", "bus", "truck"]:
+        if classes[x[1]] in ["person", "car", "motorbike", "bus", "truck"]:
             out_class.append(classes[x[1]])
             out_boxes.append(boxes[x[0]])
     return out_class, out_boxes
-
-    ####debugstuff
-    """ print(boxes)
-    for x in enumerate(boxes):
-        left = x[1][0]
-        top = x[1][1]
-        width = x[1][2]
-        height = x[1][3]
-        
-        drawPred(frame, classes[classIDs[x[0]]], 0, left, top, left + width, top + height, (255, 178, 50))
-    cv2.imshow("yeet", frame)
-    cv2.waitKey() """
 
 
 
