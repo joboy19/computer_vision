@@ -133,7 +133,7 @@ def test(image_path):
     disparity_map = stereo_to_3d_wls(imgL_CLAHE, imgR_CLAHE, max_disparity=128)
     f = 399.9745178222656
     B = 0.2090607502
-    depth_map = np.nan_to_num((f*B)/disparity_map, posinf=0, neginf=0)
+    depth_map = np.nan_to_num((f*B)/disparity_map, nan=0, posinf=0, neginf=0)
 
     distance_estimates = []
     for x in enumerate(boxes):

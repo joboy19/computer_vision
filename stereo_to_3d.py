@@ -154,6 +154,7 @@ def stereo_to_3d_wls(imgL, imgR, max_disparity=128):
     # SGBM Parameters -----------------
     window_size = 15                   # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
     
+    #set up stereo sgbm with parameters as such
     left_matcher = cv2.StereoSGBM_create(
         minDisparity=0,
         numDisparities=max_disparity,             # max_disp has to be dividable by 16 f. E. HH 192, 256
@@ -187,9 +188,7 @@ def stereo_to_3d_wls(imgL, imgR, max_disparity=128):
 
     _, disparity = cv2.threshold(filteredImg,0, max_disparity * 16, cv2.THRESH_TOZERO);
     disparity_scaled = (disparity / 16.).astype(np.uint8)
-    #cv2.imshow("yeet", disparity_scaled)
 
     return disparity_scaled
-    # close all windows
 
 #####################################################################
