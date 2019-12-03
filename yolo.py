@@ -135,7 +135,7 @@ def getOutputsNames(net):
 def yolo_on_one_frame(frame, classes="coco.names", config_file="yolov3.cfg", weights_file="yolov3.weights"):
     ### init YOLO CNN object detection model
     ##
-    confThreshold = 0.5  # Confidence threshold
+    confThreshold = 0.7  # Confidence threshold
     nmsThreshold = 0.4   # Non-maximum suppression threshold
     inpWidth = 416       # Width of network's input image
     inpHeight = 416      # Height of network's input image

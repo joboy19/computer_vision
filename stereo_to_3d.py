@@ -151,15 +151,14 @@ def stereo_to_3d(imgL, imgR, max_disparity=128):
     # close all windows
 
 def stereo_to_3d_wls(imgL, imgR, max_disparity=128):
-    # SGBM Parameters -----------------
-    window_size = 15                   # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
+    window_size = 15                 
     
     #set up stereo sgbm with parameters as such
     left_matcher = cv2.StereoSGBM_create(
         minDisparity=0,
-        numDisparities=max_disparity,             # max_disp has to be dividable by 16 f. E. HH 192, 256
+        numDisparities=max_disparity,
         blockSize=5,
-        P1=8 * 3 * window_size ** 2,    # wsize default 3; 5; 7 for SGBM reduced size image; 15 for SGBM full size image (1300px and above); 5 Works nicely
+        P1=8 * 3 * window_size ** 2,    
         P2=32 * 3 * window_size ** 2,
         disp12MaxDiff=1,
         uniquenessRatio=15,
@@ -169,22 +168,23 @@ def stereo_to_3d_wls(imgL, imgR, max_disparity=128):
         mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY
     )
 
+    #create the right matcher for the right-view disparity match, based on the left-view's parameters
     right_matcher = cv2.ximgproc.createRightMatcher(left_matcher)
-    # FILTER Parameters
-    lmbda = 80000
-    sigma = 1.2
     visual_multiplier = 1.0
     
-    wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=left_matcher)
-    wls_filter.setLambda(lmbda)
-    wls_filter.setSigmaColor(sigma)
-
-    print('computing disparity...')
-    displ = left_matcher.compute(imgL, imgR)  # .astype(np.float32)/16
-    dispr = right_matcher.compute(imgR, imgL)  # .astype(np.float32)/16
+    #compute the disparity map and ensure they're using the right data type
+    displ = left_matcher.compute(imgL, imgR)  
+    dispr = right_matcher.compute(imgR, imgL)  
     displ = np.int16(displ)
     dispr = np.int16(dispr)
-    filteredImg = wls_filter.filter(displ, imgL, None, dispr)  # important to put "imgL" here!!!
+
+    #create the wls (Weighted Least Squares) filter object to run the filter
+    wls_filter = cv2.ximgproc.createDisparityWLSFilter(matcher_left=left_matcher)
+    wls_filter.setLambda(80000)
+    wls_filter.setSigmaColor(1.2)
+
+    #filter the image using the wls filter
+    filteredImg = wls_filter.filter(displ, imgL, None, dispr) 
 
     _, disparity = cv2.threshold(filteredImg,0, max_disparity * 16, cv2.THRESH_TOZERO);
     disparity_scaled = (disparity / 16.).astype(np.uint8)

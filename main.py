@@ -11,6 +11,11 @@ from stereo_to_3d import stereo_to_3d, stereo_to_3d_wls
 #info: use CLAHE histogram equalization on the input image and more equlaisation on the output of the density
 ### todo:
 # - crop depth_map from the black bar on the side
+# 
+#A: using the whole dataset, or a subset of it, devise some way of measuring performance quantatively (
+#i.e. how well does it work?).  e.g. "Based on a representative subset of N examples, this approach 
+#works XX% of the time for the detection of Y regions .....and ..... etc."
+
 
 
 
@@ -39,12 +44,14 @@ def drawBoxes(frame, classes, boxes, distance_estimates):
 
 
 
-master_path_to_dataset = "C://Users//joebo//Documents//00uni//year3//vision//TTBB-durham-02-10-17-sub10"
+#master_path_to_dataset = "C://Users//joebo//Documents//00uni//year3//vision//TTBB-durham-02-10-17-sub10"
+master_path_to_dataset = "D://Users//Joe//Documents//00uni//coursework and notes//year3//ssa//vision//TTBB-durham-02-10-17-sub10"
 
 
 #get left and right image paths
 test_image = "1506943061.478682_L.png"
 
+#takes an image and runs CLAHE on the light channel of the image in LAB colour space
 def imagePrepCLAHELAB(imgL): 
     clahe = cv2.createCLAHE(clipLimit=2.0,tileGridSize=(8,8)) 
 
@@ -56,6 +63,7 @@ def imagePrepCLAHELAB(imgL):
 
     return imgL_CLAHE
 
+#takes a grayscale image and runs CLAHE on it
 def imagePrepCLAHEGRAY(imgL): 
     clahe = cv2.createCLAHE(clipLimit=2.0,tileGridSize=(8,8)) 
     imgL_ = cv2.cvtColor(imgL, cv2.COLOR_BGR2GRAY)
@@ -65,6 +73,7 @@ def imagePrepCLAHEGRAY(imgL):
 
 
 def yolo_and_depth(image_path):
+    #set-up directorys for the image stream
     full_path_directory_left =  os.path.join(master_path_to_dataset, "left-images")
     full_path_directory_right =  os.path.join(master_path_to_dataset, "right-images")
 
@@ -75,22 +84,17 @@ def yolo_and_depth(image_path):
     imgL = cropBottom(cv2.imread(full_path_filename_left))
     imgR = cropBottom(cv2.imread(full_path_filename_right))
  
-
+    #run the preprocessing CLAHE on both images
     imgL_CLAHE = imagePrepCLAHEGRAY(imgL)
     imgR_CLAHE = imagePrepCLAHEGRAY(imgR)
 
-    #get boxes of objects and their classes (filtered to relevant objects)
+    #get boxes of objects and their classes using YOLO (filtered to relevant objects)
     classes, boxes = yolo_on_one_frame(imgL)
 
     #get the depth-map by calculating disaparity and converting to depth
     depth_map, depth_map2 = stereo_to_3d(imgL_CLAHE, imgR_CLAHE, max_disparity=128)
 
     distance_estimates = []
-
-
-
-
-
     for x in enumerate(boxes):
         left = x[1][0]
         top = x[1][1]
@@ -98,20 +102,14 @@ def yolo_and_depth(image_path):
         height = x[1][3]
         cv2.waitKey()
         distance_estimates.append(np.median( depth_map[top:top+height, left:left+width] ))
-
     print(distance_estimates)
-
-
     drawBoxes(imgL, classes, boxes, distance_estimates)
-
-
-
     cv2.imshow("Yolo", imgL)
     cv2.imshow("Depth", depth_map2)
-
     cv2.waitKey()
 
 def test(image_path):
+    #set-up directorys for the image stream
     full_path_directory_left =  os.path.join(master_path_to_dataset, "left-images")
     full_path_directory_right =  os.path.join(master_path_to_dataset, "right-images")
 
@@ -122,14 +120,14 @@ def test(image_path):
     imgL = cropBottom(cv2.imread(full_path_filename_left))
     imgR = cropBottom(cv2.imread(full_path_filename_right))
  
-
-    imgL_CLAHE = imagePrepCLAHEGRAY(imgL)
-    imgR_CLAHE = imagePrepCLAHEGRAY(imgR)
+    #run the preprocessing CLAHE on both images
+    imgL_CLAHE = imagePrepCLAHELAB(imgL)
+    imgR_CLAHE = imagePrepCLAHELAB(imgR)
 
     #get boxes of objects and their classes (filtered to relevant objects)
     classes, boxes = yolo_on_one_frame(imgL)
 
-    #get the depth-map by calculating disaparity and converting to depth
+    #get the depth-map by calculating disaparity, using a wls filter,  and converting to depth
     disparity_map = stereo_to_3d_wls(imgL_CLAHE, imgR_CLAHE, max_disparity=128)
     f = 399.9745178222656
     B = 0.2090607502
@@ -155,4 +153,4 @@ def test(image_path):
 
 #yolo_and_depth("1506943061.478682_L.png")
 
-test("1506943061.478682_L.png")
+test("1506942473.484027_L.png")
