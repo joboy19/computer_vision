@@ -197,7 +197,12 @@ if (os.path.isfile(full_path_filename_left) and os.path.isfile(full_path_filenam
 
     # wait for a key press to exit
 
-    cv2.waitKey(0);
+    key = cv2.waitKey(40);
+    if key == "p":
+        while True:
+            key2 = cv2.waitKey()
+            if key2 == "p":
+                break
 
 else:
         print("-- files skipped (perhaps one is missing or path is wrong)");

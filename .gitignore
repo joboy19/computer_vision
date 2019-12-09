@@ -1,4 +1,10 @@
 yolov3.weights
 yolov3.cfg
 /__pycache__/
+/data/
 3d_points.txt
+coco.names
+*.png
+project.avi
+hqfl21.zip
+hqfl21.pdf

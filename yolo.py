@@ -1,74 +1,38 @@
-################################################################################
-
-# Example : performs YOLO (v3) object detection from a video file
-# specified on the command line (e.g. python FILE.py video_file) or from an
-# attached web camera
-
-# Author : Toby Breckon, toby.breckon@durham.ac.uk
-
-# Copyright (c) 2019 Toby Breckon, Durham University, UK
-# License : LGPL - http://www.gnu.org/licenses/lgpl.html
-
-# Implements the You Only Look Once (YOLO) object detection architecture decribed in full in:
-# Redmon, J., & Farhadi, A. (2018). Yolov3: An incremental improvement. arXiv preprint arXiv:1804.02767.
-# https://pjreddie.com/media/files/papers/YOLOv3.pdf
-
-# This code: significant portions based in part on the tutorial and example available at:
-# https://www.learnopencv.com/deep-learning-based-object-detection-using-yolov3-with-opencv-python-c/
-# https://github.com/spmallick/learnopencv/blob/master/ObjectDetection-YOLO/object_detection_yolo.py
-# under LICENSE: https://github.com/spmallick/learnopencv/blob/master/ObjectDetection-YOLO/LICENSE
-
-# To use first download the following files:
-
-# https://pjreddie.com/media/files/yolov3.weights
-# https://github.com/pjreddie/darknet/blob/master/cfg/yolov3.cfg?raw=true
-# https://github.com/pjreddie/darknet/blob/master/data/coco.names?raw=true
-
-################################################################################
-
-
 import cv2
 import argparse
 import sys
 import math
 import numpy as np
 
-################################################################################
 
-keep_processing = True
+def getOutputsNames(net):
+    # Get the names of all the layers in the network
+    layersNames = net.getLayerNames()
+    # Get the names of the output layers, i.e. the layers with unconnected outputs
+    return [layersNames[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
-################################################################################
-# dummy on trackbar callback function
-def on_trackbar(val):
-    return
+### init YOLO CNN object detection model
+##
+confThreshold = 0.7  # Confidence threshold
+nmsThreshold = 0.4   # Non-maximum suppression threshold
+inpWidth = 416       # Width of network's input image
+inpHeight = 416      # Height of network's input image
+##
+### Load names of classes from file
+##
+classes = None
+with open("./coco.names", 'rt') as f:
+    classes = f.read().rstrip('\n').split('\n')
 
-#####################################################################
-# Draw the predicted bounding box on the specified image
-# image: image detection performed on
-# class_name: string name of detected object_detection
-# left, top, right, bottom: rectangle parameters for detection
-# colour: to draw detection rectangle in
+#load configuration and weight files for the model and load the network using them
+net = cv2.dnn.readNetFromDarknet("./yolov3.cfg", "./yolov3.weights")
+output_layer_names = getOutputsNames(net)
 
-def drawPred(image, class_name, confidence, left, top, right, bottom, colour):
-    # Draw a bounding box.
-    cv2.rectangle(image, (left, top), (right, bottom), colour, 3)
+#set net backend and target
+net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
+net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
-    # construct label
-    label = '%s:%.2f' % (class_name, confidence)
 
-    #Display the label at the top of the bounding box
-    labelSize, baseLine = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-    top = max(top, labelSize[1])
-    cv2.rectangle(image, (left, top - round(1.5*labelSize[1])),
-        (left + round(1.5*labelSize[0]), top + baseLine), (255, 255, 255), cv2.FILLED)
-    cv2.putText(image, label, (left, top), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0,0,0), 1)
-
-#####################################################################
-# Remove the bounding boxes with low confidence using non-maxima suppression
-# image: image detection performed on
-# results: output from YOLO CNN network
-# threshold_confidence: threshold on keeping detection
-# threshold_nms: threshold used in non maximum suppression
 
 def postprocess(image, results, threshold_confidence, threshold_nms):
     frameHeight = image.shape[0]
@@ -118,59 +82,24 @@ def postprocess(image, results, threshold_confidence, threshold_nms):
     # return post processed lists of classIds, confidences and bounding boxes
     return (classIds_nms, confidences_nms, boxes_nms)
 
-################################################################################
-# Get the names of the output layers of the CNN network
-# net : an OpenCV DNN module network object
+#run yolo on a single frame, returning the boxes and classes for filtered images
+def yolo_on_one_frame(frame):
 
-def getOutputsNames(net):
-    # Get the names of all the layers in the network
-    layersNames = net.getLayerNames()
-    # Get the names of the output layers, i.e. the layers with unconnected outputs
-    return [layersNames[i[0] - 1] for i in net.getUnconnectedOutLayers()]
-
-##################################################################################
-##
-
-
-def yolo_on_one_frame(frame, classes="coco.names", config_file="yolov3.cfg", weights_file="yolov3.weights"):
-    ### init YOLO CNN object detection model
-    ##
-    confThreshold = 0.7  # Confidence threshold
-    nmsThreshold = 0.4   # Non-maximum suppression threshold
-    inpWidth = 416       # Width of network's input image
-    inpHeight = 416      # Height of network's input image
-    ##
-    ### Load names of classes from file
-    ##
-    classesFile = classes
-    classes = None
-    with open(classesFile, 'rt') as f:
-        classes = f.read().rstrip('\n').split('\n')
-    ##
-    ### load configuration and weight files for the model and load the network using them
-    ##
-    net = cv2.dnn.readNetFromDarknet(config_file, weights_file)
-    output_layer_names = getOutputsNames(net)
-    ##
-    ## # defaults DNN_BACKEND_INFERENCE_ENGINE if Intel Inference Engine lib available or DNN_BACKEND_OPENCV otherwise
-    net.setPreferableBackend(cv2.dnn.DNN_BACKEND_DEFAULT)
-    ##
-    ### change to cv2.dnn.DNN_TARGET_CPU (slower) if this causes issues (should fail gracefully if OpenCL not available)
-    net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
-
+    #prep tensor and net with information from the 
     tensor = cv2.dnn.blobFromImage(frame, 1 / 255, (inpWidth, inpHeight), [0, 0, 0], 1, crop=False)
     net.setInput(tensor)
+
+    #run the net and post-process the output
     results = net.forward(output_layer_names)
     classIDs, confidences, boxes = postprocess(frame, results, confThreshold, nmsThreshold)
+
     out_class = [] 
     out_boxes = []
     for x in enumerate(classIDs):
-        if classes[x[1]] in ["person", "car", "motorbike", "bus", "truck"]:
+        if classes[x[1]] in ["person", "car", "motorbike", "bus", "truck", "bicycle"]:
             out_class.append(classes[x[1]])
             out_boxes.append(boxes[x[0]])
     return out_class, out_boxes
-
-
 
 
 
