@@ -7,4 +7,7 @@ coco.names
 *.png
 project.avi
 hqfl21.zip
-hqfl21.pdf
+stereo_disparity.py
+stereo_to_3d.py
+stereo_to_3d_hard_copy.py
+yolo.py
